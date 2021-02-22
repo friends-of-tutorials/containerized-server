@@ -1,0 +1,17 @@
+# .env
+.env
+
+# traefik
+/docker/traefik/letsencrypt
+
+# mail
+/docker/mail/config/
+/docker/mail/db/
+/docker/mail/log/
+/docker/mail/letsencrypt/
+/docker/mail/mailserver.env
+/docker/mail/www/
+
+# lamp
+/docker/lamp/html/vendor/
+

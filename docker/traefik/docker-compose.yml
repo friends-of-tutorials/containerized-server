@@ -1,0 +1,57 @@
+version: '3'
+
+services:
+    traefik-2-4-3:
+        image: "${TRAEFIK_2_4_3_PROXY_IMAGE}"
+        container_name: "${TRAEFIK_2_4_3_PROXY_CONTAINER_NAME}"
+        hostname: "${TRAEFIK_2_4_3_PROXY_HOSTNAME}"
+        command:
+            # Docker swarm configuration
+            - "--providers.docker.endpoint=unix:///var/run/docker.sock"
+            - "--providers.docker.exposedbydefault=false"
+            - "--providers.docker.network=traefik_public"
+            # Configure entrypoint
+            - "--entrypoints.web.address=:80"
+            - "--entrypoints.websecure.address=:443"
+            # SSL configuration
+            - "--certificatesresolvers.letsencryptresolver.acme.httpchallenge=true"
+            - "--certificatesresolvers.letsencryptresolver.acme.httpchallenge.entrypoint=web"
+            - "--certificatesresolvers.letsencryptresolver.acme.email=${TRAEFIK_2_4_3_PROXY_EMAIL}"
+            - "--certificatesresolvers.letsencryptresolver.acme.storage=/letsencrypt/acme.json"
+            # Global HTTP -> HTTPS
+            - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+            - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+            # Enable dashboard
+            - "--api.dashboard=true"
+        ports:
+            - 80:80
+            - 443:443
+        volumes:
+            # To persist certificates
+            - traefik-certificates:/letsencrypt
+            # So that Traefik can listen to the Docker events
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+        networks:
+            - traefik_public
+        labels:
+            # Enable traefik
+            - "traefik.enable=true"
+            # Add traefik.domain.tld
+            - "traefik.http.routers.traefik-2-4-3.rule=Host(`${TRAEFIK_2_4_3_PROXY_URL}`)"
+            - "traefik.http.routers.traefik-2-4-3.entrypoints=websecure"
+            - "traefik.http.routers.traefik-2-4-3.tls.certresolver=letsencryptresolver"
+            # Add api service
+            - "traefik.http.routers.traefik-2-4-3.service=api@internal"
+            # Add admin authentification
+            - "traefik.http.routers.traefik-2-4-3.middlewares=adminauth"
+            # Define some global authentifications
+            - "traefik.http.middlewares.adminauth.basicauth.users=${TRAEFIK_2_4_3_PROXY_ADMINAUTH}"
+            - "traefik.http.middlewares.basicauth.basicauth.users=${TRAEFIK_2_4_3_PROXY_BASICAUTH}"
+
+volumes:
+    traefik-certificates:
+
+networks:
+    traefik_public:
+        external: true
+

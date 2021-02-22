@@ -1,0 +1,153 @@
+graph TD
+
+	%% define general components
+	PUBLIC_INTERNET(("&nbsp;&nbsp;&nbsp;Internet&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"))
+	PUBLIC_AUTHORITY_LETSENCRYPT["Let's Encrypt Certificate authority&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
+	
+	%% define traefik and certbot components
+	DOCKER_REVERSE_PROXY_TRAEFIK[["Traefik Reverse Proxy"]]
+
+	%% define LAMP components
+	DOCKER_DB_MYSQL[("MySQL DB&nbsp;&nbsp;")]
+	DOCKER_SERVICE_PHP73[["Apache 2.4 / PHP 7.3"]]
+	DOCKER_SERVICE_PHP74[["Apache 2.4 / PHP 7.4"]]
+	DOCKER_SERVICE_PHP80[["Apache 2.4 / PHP 8.0"]]
+	DOCKER_SERVICE_ADMINER[["Adminer"]]
+	DOCKER_SERVICE_PHPMYADMIN[["phpMyAdmin"]]
+	
+	%% define VPN components
+	DOCKER_VPN[["VPN"]]
+
+	%% define mail components
+	DOCKER_SERVICE_ROUNDCUBE[["Roundcube"]]
+	DOCKER_SERVICE_PASSBOLT[["Passbolt"]]
+	DOCKER_SERVICE_MAILSERVER(["Docker Mailserver"])
+	DOCKER_DB_SQLITE_PASSBOLT[("SQLite DB")]
+	DOCKER_DB_SQLITE_ROUNDCUBE[("SQLite DB")]
+	DOCKER_SERVICE_CERTBOT[["Certbot"]]
+	
+	%% define server components
+	SERVER_SSH_HOST["SSH Host"]
+	SERVER_DOCKER_HOST["Docker Host"]
+	SERVER_FILE_SYSTEM_HOME["/home/user"]
+	SERVER_FILE_SYSTEM_VAR["/var"]
+
+	%% define subgroups (Network)
+	subgraph EXPLANATION_SUBGRAPH_SERVER[" "]
+		subgraph EXPLANATION_SUBGRAPH_NETWORK_EXTERNAL["External Network&nbsp;&nbsp;&nbsp;&nbsp;"]
+			EXPLANATION_SUBGRAPH_NETWORK_INTERN["Internal Network&nbsp;&nbsp;&nbsp;&nbsp;"]
+		end
+	end
+	
+	%% define subgroups (Server)
+	subgraph SUBGRAPH_SERVER["Server&nbsp;&nbsp;"]
+		SERVER_SSH_HOST
+		SERVER_DOCKER_HOST
+		
+		subgraph SUBGRAPH_NETWORK_EXTERNAL_TRAEFIK["External traefik network&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
+			DOCKER_REVERSE_PROXY_TRAEFIK
+
+			subgraph SUBGRAPH_NETWORK_INTERNAL_LAMP["Internal LAMP network&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
+				DOCKER_DB_MYSQL
+				DOCKER_SERVICE_PHP73
+				DOCKER_SERVICE_PHP74
+				DOCKER_SERVICE_PHP80
+				DOCKER_SERVICE_ADMINER
+				DOCKER_SERVICE_PHPMYADMIN
+			end
+			subgraph SUBGRAPH_NETWORK_INTERNAL_MAIL["Internal mail network&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
+				DOCKER_SERVICE_CERTBOT
+				DOCKER_SERVICE_MAILSERVER
+				DOCKER_SERVICE_ROUNDCUBE
+				DOCKER_DB_SQLITE_ROUNDCUBE
+			end
+			
+			subgraph SUBGRAPH_NETWORK_INTERNAL_PASSBOLT["Internal passbolt network&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
+				DOCKER_SERVICE_PASSBOLT
+				DOCKER_DB_SQLITE_PASSBOLT
+			end
+		end
+		
+		subgraph SUBGRAPH_NETWORK_INTERNAL_VPN["Internal VPN network&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
+			DOCKER_VPN
+		end
+		
+		SERVER_FILE_SYSTEM_HOME
+		SERVER_FILE_SYSTEM_VAR
+	end
+
+	%% define general graphs
+	PUBLIC_INTERNET==>|":10022"|SERVER_SSH_HOST
+	PUBLIC_INTERNET==>|":80, :443, :993, :587, 4500/udp, 500/udp"|SERVER_DOCKER_HOST
+	SERVER_DOCKER_HOST==>|":80, :443"|DOCKER_REVERSE_PROXY_TRAEFIK
+	SERVER_DOCKER_HOST==>|":993, :587"|DOCKER_SERVICE_MAILSERVER
+	SERVER_DOCKER_HOST==>|"4500/udp, 500/udp"|DOCKER_VPN
+	
+	%% define docker and server graphs
+	
+	%% define traefik graphs
+	DOCKER_REVERSE_PROXY_TRAEFIK==>DOCKER_SERVICE_PHP73
+	DOCKER_REVERSE_PROXY_TRAEFIK==>DOCKER_SERVICE_PHP74
+	DOCKER_REVERSE_PROXY_TRAEFIK==>DOCKER_SERVICE_PHP80
+	DOCKER_REVERSE_PROXY_TRAEFIK==>DOCKER_SERVICE_ADMINER
+	DOCKER_REVERSE_PROXY_TRAEFIK==>DOCKER_SERVICE_PHPMYADMIN
+	DOCKER_REVERSE_PROXY_TRAEFIK==>DOCKER_SERVICE_PASSBOLT
+	DOCKER_REVERSE_PROXY_TRAEFIK==>DOCKER_SERVICE_ROUNDCUBE
+	
+	%% define db graphs
+	DOCKER_SERVICE_PHP73-->|":3306"|DOCKER_DB_MYSQL
+	DOCKER_SERVICE_PHP74-->|":3306"|DOCKER_DB_MYSQL
+	DOCKER_SERVICE_PHP80-->|":3306"|DOCKER_DB_MYSQL
+	DOCKER_SERVICE_ADMINER-->|":3306"|DOCKER_DB_MYSQL
+	DOCKER_SERVICE_PHPMYADMIN-->|":3306"|DOCKER_DB_MYSQL
+	
+	%% define passbolt graphs
+	DOCKER_SERVICE_PASSBOLT-->|":fs"|DOCKER_DB_SQLITE_PASSBOLT
+	
+	%% define roundcube graphs
+	DOCKER_SERVICE_ROUNDCUBE-->|":fs"|DOCKER_DB_SQLITE_ROUNDCUBE
+	DOCKER_SERVICE_ROUNDCUBE-->|":993, :587"|DOCKER_SERVICE_MAILSERVER
+	%%DOCKER_SERVICE_MAILSERVER---->DOCKER_SERVICE_CERTBOT
+	
+	%% define file system graphs
+	DOCKER_DB_SQLITE_PASSBOLT-->SERVER_FILE_SYSTEM_HOME
+	DOCKER_DB_SQLITE_ROUNDCUBE-->SERVER_FILE_SYSTEM_HOME
+	DOCKER_SERVICE_MAILSERVER-->SERVER_FILE_SYSTEM_HOME
+	DOCKER_DB_MYSQL-->SERVER_FILE_SYSTEM_VAR
+	
+	%% define classes (modules)
+	classDef CLASS_DB fill:#2596be,color:#fff,font-weight:normal,stroke:#063970;
+	classDef CLASS_SERVICE_REVERSE_PROXY fill:#154c79,color:#fff,font-weight:normal,stroke:#052c39;
+	classDef CLASS_SERVICE_CERTBOT fill:#fae26b,color:#808080,font-weight:normal,stroke:#9a823b;
+	classDef CLASS_SERVICE_LAMP_PHP fill:#f09652,color:#fff,font-weight:normal,stroke:#873e23;
+	classDef CLASS_SERVICE_LAMP_GUI fill:#ac5c40,color:#fff,font-weight:normal,stroke:#672e13;
+	classDef CLASS_SERVICE_MAIL fill:#277d84,color:#fff,font-weight:normal,stroke:#173d44;
+	classDef CLASS_FILESYSTEM fill:#eeeee4,color:#808080,font-weight:normal,stroke:#808080;
+	classDef CLASS_HOSTS fill:#5d715a,color:#fff,font-weight:normal,stroke:#3d313a;
+	classDef CLASS_PUBLIC fill:#C6CABB,color:#3d313a,font-weight:normal,stroke:#3d313a,font-size:20px
+
+	%% define classes (subgroups)
+	classDef CLASS_SUBGRAPH_SERVER fill:#BBC1CA,color:#808080,font-weight:bold,stroke:#808080,stroke-width:4px;
+	classDef CLASS_NETWORK_EXTERNAL fill:#C3D1C4,color:#404040,font-weight:bold,stroke:#404040,stroke-width:1px;
+	classDef CLASS_NETWORK_INTERNAL fill:#D1CDC3,color:#404040,font-weight:bold,stroke:#404040,stroke-width:1px;
+	classDef CLASS_EXPLANATION fill:#f0f0f0,color:#404040,font-weight:bold,stroke:#404040,stroke-width:1px;
+
+	%% assign classes (modules)
+	class DOCKER_DB_MYSQL,DOCKER_DB_SQLITE_ROUNDCUBE,DOCKER_DB_SQLITE_PASSBOLT CLASS_DB
+	class DOCKER_REVERSE_PROXY_TRAEFIK CLASS_SERVICE_REVERSE_PROXY
+	class DOCKER_SERVICE_CERTBOT CLASS_SERVICE_CERTBOT
+	class DOCKER_SERVICE_PHP73,DOCKER_SERVICE_PHP74,DOCKER_SERVICE_PHP80 CLASS_SERVICE_LAMP_PHP
+	class DOCKER_SERVICE_ADMINER,DOCKER_SERVICE_PHPMYADMIN,DOCKER_VPN CLASS_SERVICE_LAMP_GUI
+	class DOCKER_SERVICE_ROUNDCUBE CLASS_SERVICE_LAMP_GUI
+	class DOCKER_SERVICE_PASSBOLT CLASS_SERVICE_LAMP_GUI
+	class DOCKER_SERVICE_MAILSERVER CLASS_SERVICE_MAIL
+	class SERVER_FILE_SYSTEM_HOME,SERVER_FILE_SYSTEM_VAR CLASS_FILESYSTEM
+	class SERVER_DOCKER_HOST,SERVER_SSH_HOST CLASS_HOSTS
+	class PUBLIC_INTERNET,PUBLIC_AUTHORITY_LETSENCRYPT CLASS_PUBLIC
+	class SUBGRAPH_EXPANATION CLASS_EXPLANATION
+	
+	%% assign classes (subgoups)
+	class SUBGRAPH_SERVER,EXPLANATION_SUBGRAPH_SERVER CLASS_SUBGRAPH_SERVER
+	class SUBGRAPH_NETWORK_EXTERNAL_TRAEFIK,EXPLANATION_SUBGRAPH_NETWORK_EXTERNAL CLASS_NETWORK_EXTERNAL
+	class SUBGRAPH_NETWORK_INTERNAL_LAMP,SUBGRAPH_NETWORK_INTERNAL_MAIL,EXPLANATION_SUBGRAPH_NETWORK_INTERN,SUBGRAPH_NETWORK_INTERNAL_VPN,SUBGRAPH_NETWORK_INTERNAL_PASSBOLT CLASS_NETWORK_INTERNAL
+

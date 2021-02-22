@@ -1,0 +1,128 @@
+version: "3.7"
+services:
+    # PHP 7.4.15 container with apache 2.4
+    php-7-4-15-apache:
+        build:
+            dockerfile: "${PHP_7_4_15_APACHE_SERVER_DOCKERFILE}"
+            context: .
+        image: "${PHP_7_4_15_APACHE_SERVER_IMAGE_NAME}"
+        container_name: "${PHP_7_4_15_APACHE_SERVER_CONTAINER_NAME}"
+        hostname: "${PHP_7_4_15_APACHE_SERVER_HOSTNAME}"
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.php-7-4-15-apache.rule=Host(`${PHP_7_4_15_APACHE_SERVER_URL}`)"
+            - "traefik.http.routers.php-7-4-15-apache.entrypoints=websecure"
+            - "traefik.http.routers.php-7-4-15-apache.tls=true"
+            - "traefik.http.routers.php-7-4-15-apache.tls.certresolver=letsencryptresolver"
+            - "traefik.http.routers.php-7-4-15-apache.service=lb-php-7-4-15-apache"
+            - "traefik.http.services.lb-php-7-4-15-apache.loadbalancer.server.port=80"
+            - "traefik.http.routers.php-7-4-15-apache.middlewares=basicauth"
+            - "traefik.docker.network=traefik_public"
+        restart: always
+        volumes:
+            - "./html/:/var/www/html/"
+        networks:
+            - traefik_public
+            - lamp_internal
+        depends_on:
+            - mysql-8.0.19
+
+    # PHP 8.0.2 container with apache 2.4
+    php-8-0-2-apache:
+        build:
+            dockerfile: "${PHP_8_0_2_APACHE_SERVER_DOCKERFILE}"
+            context: .
+        image: "${PHP_8_0_2_APACHE_SERVER_IMAGE_NAME}"
+        container_name: "${PHP_8_0_2_APACHE_SERVER_CONTAINER_NAME}"
+        hostname: "${PHP_8_0_2_APACHE_SERVER_HOSTNAME}"
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.php-8-0-2-apache.rule=Host(`${PHP_8_0_2_APACHE_SERVER_URL}`)"
+            - "traefik.http.routers.php-8-0-2-apache.entrypoints=websecure"
+            - "traefik.http.routers.php-8-0-2-apache.tls=true"
+            - "traefik.http.routers.php-8-0-2-apache.tls.certresolver=letsencryptresolver"
+            - "traefik.http.routers.php-8-0-2-apache.service=lb-php-8-0-2-apache"
+            - "traefik.http.services.lb-php-8-0-2-apache.loadbalancer.server.port=80"
+            - "traefik.http.routers.php-8-0-2-apache.middlewares=basicauth"
+            - "traefik.docker.network=traefik_public"
+        restart: always
+        volumes:
+            - "./html/:/var/www/html/"
+        networks:
+            - traefik_public
+            - lamp_internal
+        depends_on:
+            - mysql-8.0.19
+
+    # MySQL Server
+    mysql-8.0.19:
+        image: "${MYSQL_8_0_19_SERVER_IMAGE}"
+        container_name: "${MYSQL_8_0_19_SERVER_CONTAINER_NAME}"
+        hostname: "${MYSQL_8_0_19_SERVER_HOSTNAME}"
+        labels:
+            - "traefik.enable=false"
+        restart: always
+        environment:
+            MYSQL_ROOT_PASSWORD: "${MYSQL_SERVER_ROOT_PASSWORD}"
+        volumes:
+            - mysql-data:/var/lib/mysql
+        networks:
+            - lamp_internal
+
+    # phpMyAdmin MySQL Client
+    phpmyadmin:
+        image: "${PHPMYADMIN_5_0_1_WEB_APPLICATION_IMAGE}"
+        container_name: "${PHPMYADMIN_5_0_1_WEB_APPLICATION_CONTAINER_NAME}"
+        hostname: "${PHPMYADMIN_5_0_1_WEB_APPLICATION_HOSTNAME}"
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.phpmyadmin.rule=Host(`${PHPMYADMIN_5_0_1_WEB_APPLICATION_URL}`)"
+            - "traefik.http.routers.phpmyadmin.entrypoints=websecure"
+            - "traefik.http.routers.phpmyadmin.tls=true"
+            - "traefik.http.routers.phpmyadmin.tls.certresolver=letsencryptresolver"
+            - "traefik.http.routers.phpmyadmin.service=lb-phpmyadmin"
+            - "traefik.http.services.lb-phpmyadmin.loadbalancer.server.port=80"
+            - "traefik.http.routers.phpmyadmin.middlewares=adminauth"
+            - "traefik.docker.network=traefik_public"
+        restart: always
+        environment:
+            PMA_HOST: "${MYSQL_8_0_19_SERVER_HOSTNAME}"
+            PMA_USER: "${MYSQL_SERVER_ROOT_USER}"
+            PMA_PASSWORD: "${MYSQL_SERVER_ROOT_PASSWORD}"
+        networks:
+            - traefik_public
+            - lamp_internal
+
+    # Adminer MySQL Client
+    adminer:
+        image: "${ADMINER_4_8_0_WEB_APPLICATION_IMAGE}"
+        container_name: "${ADMINER_4_8_0_WEB_APPLICATION_CONTAINER_NAME}"
+        hostname: "${ADMINER_4_8_0_WEB_APPLICATION_HOSTNAME}"
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.adminer.rule=Host(`${ADMINER_4_8_0_WEB_APPLICATION_URL}`)"
+            - "traefik.http.routers.adminer.entrypoints=websecure"
+            - "traefik.http.routers.adminer.tls=true"
+            - "traefik.http.routers.adminer.tls.certresolver=letsencryptresolver"
+            - "traefik.http.routers.adminer.service=lb-adminer"
+            - "traefik.http.services.lb-adminer.loadbalancer.server.port=8080"
+            - "traefik.http.routers.adminer.middlewares=adminauth"
+            - "traefik.docker.network=traefik_public"
+        restart: always
+        environment:
+            ADMINER_DEFAULT_SERVER: "${MYSQL_8_0_19_SERVER_HOSTNAME}"
+        networks:
+            - traefik_public
+            - lamp_internal
+
+volumes:
+    mysql-data:
+        name: "${MYSQL_SERVER_DATA_VOLUME_ID}"
+
+networks:
+    traefik_public:
+        external: true
+    lamp_internal:
+        external: false
+        name: lamp_internal
+

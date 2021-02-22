@@ -1,0 +1,72 @@
+version: '3.8'
+
+# See https://github.com/docker-mailserver/docker-mailserver for more informations
+services:
+    # Docker Mailserver 8.0.1
+    docker-mailserver-8-0-1:
+        image: ${DOCKER_MAILSERVER_8_0_1_IMAGE_NAME}
+        container_name: ${DOCKER_MAILSERVER_8_0_1_CONTAINER_NAME}
+        hostname: ${DOCKER_MAILSERVER_8_0_1_HOSTNAME}
+        domainname: ${DOCKER_MAILSERVER_8_0_1_DOMAINNAME}
+        labels:
+            - "traefik.enable=false"
+        restart: always
+        env_file: mailserver.env
+        environment:
+            - SSL_TYPE=letsencrypt
+        ports:
+            - "25:25"
+            - "143:143"
+            - "587:587"
+            - "993:993"
+        volumes:
+            - maildata:/var/mail
+            - mailstate:/var/mail-state
+            - maillogs:/var/log/mail
+            - ./config/:/tmp/docker-mailserver/${SELINUX_LABEL}
+            - ./letsencrypt/:/etc/letsencrypt/
+        cap_add: [ "NET_ADMIN", "SYS_PTRACE" ]
+        networks:
+            - traefik_public
+            - mail_internal
+
+    # Roundcube mail client
+    roundcubemail-latest:
+        image: "${ROUNDCUBE_LATEST_IMAGE}"
+        container_name: "${ROUNDCUBE_LATEST_CONTAINER_NAME}"
+        hostname: "${ROUNDCUBE_LATEST_HOSTNAME}"
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.roundcubemail-latest.rule=Host(`${ROUNDCUBE_LATEST_URL}`)"
+            - "traefik.http.routers.roundcubemail-latest.entrypoints=websecure"
+            - "traefik.http.routers.roundcubemail-latest.tls=true"
+            - "traefik.http.routers.roundcubemail-latest.tls.certresolver=letsencryptresolver"
+            - "traefik.http.routers.roundcubemail-latest.service=lb-roundcubemail-latest"
+            - "traefik.http.services.lb-roundcubemail-latest.loadbalancer.server.port=80"
+            - "traefik.http.routers.roundcubemail-latest.middlewares=basicauth"
+            - "traefik.docker.network=traefik_public"
+        restart: always
+        volumes:
+            - ./www:/var/www/html
+            - ./db/sqlite:/var/roundcube/db
+        environment:
+            - ROUNDCUBEMAIL_DB_TYPE=sqlite
+            - ROUNDCUBEMAIL_SKIN=elastic
+            - ROUNDCUBEMAIL_DEFAULT_HOST=${ROUNDCUBE_LATEST_DEFAULT_HOST}
+            - ROUNDCUBEMAIL_SMTP_SERVER=${ROUNDCUBE_LATEST_SMTP_SERVER}
+        networks:
+            - traefik_public
+            - mail_internal
+
+volumes:
+    maildata:
+    mailstate:
+    maillogs:
+
+networks:
+    traefik_public:
+        external: true
+    mail_internal:
+        external: false
+        name: mail_internal
+
