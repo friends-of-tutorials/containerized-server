@@ -115,6 +115,31 @@ services:
             - traefik_public
             - lamp_internal
 
+    # MailHog Client (on port 1025 for lamp_internal)
+    mailhog:
+        image: "${MAILHOG_1_0_1_WEB_APPLICATION_IMAGE}"
+        container_name: "${MAILHOG_1_0_1_WEB_APPLICATION_CONTAINER_NAME}"
+        hostname: "${MAILHOG_1_0_1_WEB_APPLICATION_HOSTNAME}"
+        logging:
+            driver: 'none'  # disable saving logs
+        #ports:
+        #    - 1025:1025 # smtp server
+        #    - 8025:8025 # web ui
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.mailhog.rule=Host(`${MAILHOG_1_0_1_WEB_APPLICATION_URL}`)"
+            - "traefik.http.routers.mailhog.entrypoints=websecure"
+            - "traefik.http.routers.mailhog.tls=true"
+            - "traefik.http.routers.mailhog.tls.certresolver=letsencryptresolver"
+            - "traefik.http.routers.mailhog.service=lb-mailhog"
+            - "traefik.http.services.lb-mailhog.loadbalancer.server.port=8025"
+            - "traefik.http.routers.mailhog.middlewares=basicauth"
+            - "traefik.docker.network=traefik_public"
+        restart: always
+        networks:
+            - traefik_public
+            - lamp_internal
+
 volumes:
     mysql-data:
         name: "${MYSQL_SERVER_DATA_VOLUME_ID}"
