@@ -17,13 +17,13 @@ services:
             - "traefik.http.routers.php-7-4-15-apache.service=lb-php-7-4-15-apache"
             - "traefik.http.services.lb-php-7-4-15-apache.loadbalancer.server.port=80"
             - "traefik.http.routers.php-7-4-15-apache.middlewares=basicauth"
-            - "traefik.docker.network=traefik_public"
+            - "traefik.docker.network=traefik-public"
         restart: always
         volumes:
             - "./html/:/var/www/html/"
         networks:
-            - traefik_public
-            - lamp_internal
+            - traefik-public
+            - lamp-internal
         depends_on:
             - mysql-8.0.19
 
@@ -44,13 +44,13 @@ services:
             - "traefik.http.routers.php-8-0-2-apache.service=lb-php-8-0-2-apache"
             - "traefik.http.services.lb-php-8-0-2-apache.loadbalancer.server.port=80"
             - "traefik.http.routers.php-8-0-2-apache.middlewares=basicauth"
-            - "traefik.docker.network=traefik_public"
+            - "traefik.docker.network=traefik-public"
         restart: always
         volumes:
             - "./html/:/var/www/html/"
         networks:
-            - traefik_public
-            - lamp_internal
+            - traefik-public
+            - lamp-internal
         depends_on:
             - mysql-8.0.19
 
@@ -67,7 +67,7 @@ services:
         volumes:
             - mysql-data:/var/lib/mysql
         networks:
-            - lamp_internal
+            - lamp-internal
 
     # phpMyAdmin MySQL Client
     phpmyadmin:
@@ -83,15 +83,15 @@ services:
             - "traefik.http.routers.phpmyadmin.service=lb-phpmyadmin"
             - "traefik.http.services.lb-phpmyadmin.loadbalancer.server.port=80"
             - "traefik.http.routers.phpmyadmin.middlewares=adminauth"
-            - "traefik.docker.network=traefik_public"
+            - "traefik.docker.network=traefik-public"
         restart: always
         environment:
             PMA_HOST: "${MYSQL_8_0_19_SERVER_HOSTNAME}"
             PMA_USER: "${MYSQL_SERVER_ROOT_USER}"
             PMA_PASSWORD: "${MYSQL_SERVER_ROOT_PASSWORD}"
         networks:
-            - traefik_public
-            - lamp_internal
+            - traefik-public
+            - lamp-internal
 
     # Adminer MySQL Client
     adminer:
@@ -107,24 +107,21 @@ services:
             - "traefik.http.routers.adminer.service=lb-adminer"
             - "traefik.http.services.lb-adminer.loadbalancer.server.port=8080"
             - "traefik.http.routers.adminer.middlewares=adminauth"
-            - "traefik.docker.network=traefik_public"
+            - "traefik.docker.network=traefik-public"
         restart: always
         environment:
             ADMINER_DEFAULT_SERVER: "${MYSQL_8_0_19_SERVER_HOSTNAME}"
         networks:
-            - traefik_public
-            - lamp_internal
+            - traefik-public
+            - lamp-internal
 
-    # MailHog Client (on port 1025 for lamp_internal)
+    # MailHog Client (on port 1025 for lamp-internal)
     mailhog:
         image: "${MAILHOG_1_0_1_WEB_APPLICATION_IMAGE}"
         container_name: "${MAILHOG_1_0_1_WEB_APPLICATION_CONTAINER_NAME}"
         hostname: "${MAILHOG_1_0_1_WEB_APPLICATION_HOSTNAME}"
         logging:
             driver: 'none'  # disable saving logs
-        #ports:
-        #    - 1025:1025 # smtp server
-        #    - 8025:8025 # web ui
         labels:
             - "traefik.enable=true"
             - "traefik.http.routers.mailhog.rule=Host(`${MAILHOG_1_0_1_WEB_APPLICATION_URL}`)"
@@ -134,20 +131,21 @@ services:
             - "traefik.http.routers.mailhog.service=lb-mailhog"
             - "traefik.http.services.lb-mailhog.loadbalancer.server.port=8025"
             - "traefik.http.routers.mailhog.middlewares=basicauth"
-            - "traefik.docker.network=traefik_public"
+            - "traefik.docker.network=traefik-public"
         restart: always
         networks:
-            - traefik_public
-            - lamp_internal
+            - traefik-public
+            - lamp-internal
 
 volumes:
     mysql-data:
         name: "${MYSQL_SERVER_DATA_VOLUME_ID}"
 
 networks:
-    traefik_public:
+    traefik-public:
         external: true
-    lamp_internal:
+        name: traefik-public
+    lamp-internal:
         external: false
-        name: lamp_internal
+        name: lamp-internal
 

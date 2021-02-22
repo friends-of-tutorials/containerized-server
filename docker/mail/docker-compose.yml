@@ -27,8 +27,8 @@ services:
             - ./letsencrypt/:/etc/letsencrypt/
         cap_add: [ "NET_ADMIN", "SYS_PTRACE" ]
         networks:
-            - traefik_public
-            - mail_internal
+            - traefik-public
+            - mail-internal
 
     # Roundcube mail client
     roundcubemail-latest:
@@ -44,7 +44,7 @@ services:
             - "traefik.http.routers.roundcubemail-latest.service=lb-roundcubemail-latest"
             - "traefik.http.services.lb-roundcubemail-latest.loadbalancer.server.port=80"
             - "traefik.http.routers.roundcubemail-latest.middlewares=basicauth"
-            - "traefik.docker.network=traefik_public"
+            - "traefik.docker.network=traefik-public"
         restart: always
         volumes:
             - ./www:/var/www/html
@@ -55,8 +55,8 @@ services:
             - ROUNDCUBEMAIL_DEFAULT_HOST=${ROUNDCUBE_LATEST_DEFAULT_HOST}
             - ROUNDCUBEMAIL_SMTP_SERVER=${ROUNDCUBE_LATEST_SMTP_SERVER}
         networks:
-            - traefik_public
-            - mail_internal
+            - traefik-public
+            - mail-internal
 
 volumes:
     maildata:
@@ -64,9 +64,10 @@ volumes:
     maillogs:
 
 networks:
-    traefik_public:
+    traefik-public:
         external: true
-    mail_internal:
+        name: traefik-public
+    mail-internal:
         external: false
-        name: mail_internal
+        name: mail-internal
 

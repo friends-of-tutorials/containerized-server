@@ -9,7 +9,7 @@ services:
             # Docker swarm configuration
             - "--providers.docker.endpoint=unix:///var/run/docker.sock"
             - "--providers.docker.exposedbydefault=false"
-            - "--providers.docker.network=traefik_public"
+            - "--providers.docker.network=traefik-public"
             # Configure entrypoint
             - "--entrypoints.web.address=:80"
             - "--entrypoints.websecure.address=:443"
@@ -32,7 +32,7 @@ services:
             # So that Traefik can listen to the Docker events
             - /var/run/docker.sock:/var/run/docker.sock:ro
         networks:
-            - traefik_public
+            - traefik-public
         labels:
             # Enable traefik
             - "traefik.enable=true"
@@ -52,6 +52,7 @@ volumes:
     traefik-certificates:
 
 networks:
-    traefik_public:
+    traefik-public:
         external: true
+        name: traefik-public
 
