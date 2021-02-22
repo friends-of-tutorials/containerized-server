@@ -31,7 +31,7 @@ echo
 
 # Build images
 echo -n "Build image overview.png... "
-mmdc -i "$ENV_ROOT_PATH/mmd/overview.mmd" -o "$ENV_ROOT_PATH/images/overview.png" --configFile "$ENV_ROOT_PATH/mmd/config.json"
+mmdc -i "$ENV_ROOT_PATH/mmd/overview.mmd" -o "$ENV_ROOT_PATH/images/overview.png" -c "$ENV_ROOT_PATH/mmd/config.json" -b transparent
 echo "Done."
 
 # Print image info
