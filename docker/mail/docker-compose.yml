@@ -30,7 +30,7 @@ services:
             - traefik-public
             - mail-internal
 
-    # Roundcube mail client
+    # Roundcube mail client 1.4.11
     roundcubemail-latest:
         image: "${ROUNDCUBE_LATEST_IMAGE}"
         container_name: "${ROUNDCUBE_LATEST_CONTAINER_NAME}"

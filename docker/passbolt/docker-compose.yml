@@ -1,0 +1,83 @@
+version: '3.4'
+services:
+    # MariaDB 10.5.8 for passbolt
+    passbolt-mariadb-10-5-8:
+        image: "${MARIADB_10_5_8_SERVER_IMAGE}"
+        container_name: "${MARIADB_10_5_8_SERVER_CONTAINER_NAME}"
+        hostname: "${MARIADB_10_5_8_SERVER_HOSTNAME}"
+        labels:
+            - "traefik.enable=false"
+        restart: always
+        environment:
+            MYSQL_ROOT_PASSWORD: "${MARIADB_10_5_8_SERVER_ROOT_PASSWORD}"
+            MYSQL_DATABASE: "${MARIADB_10_5_8_SERVER_DATABASE}"
+            MYSQL_USER: "${MARIADB_10_5_8_SERVER_USER}"
+            MYSQL_PASSWORD: "${MARIADB_10_5_8_SERVER_PASSWORD}"
+        volumes:
+            - "${MARIADB_10_5_8_SERVER_VOLUME_DATA}:/var/lib/mysql"
+        networks:
+            - traefik-public
+            - passbolt-internal
+
+    # Passbolt 2.13.5
+    passbolt-2-13-5:
+        image: "${PASSBOLT_APPLICATION_2_13_5_IMAGE}"
+        container_name: "${PASSBOLT_APPLICATION_2_13_5_CONTAINER_NAME}"
+        hostname: "${PASSBOLT_APPLICATION_2_13_5_HOSTNAME}"
+        tty: true
+        depends_on:
+            - "${MARIADB_10_5_8_SERVER_HOSTNAME}"
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.passbolt-2-13-5.rule=Host(`${PASSBOLT_APPLICATION_2_13_5_URL}`)"
+            - "traefik.http.routers.passbolt-2-13-5.entrypoints=websecure"
+            - "traefik.http.routers.passbolt-2-13-5.tls=true"
+            - "traefik.http.routers.passbolt-2-13-5.tls.certresolver=letsencryptresolver"
+            - "traefik.http.routers.passbolt-2-13-5.service=lb-passbolt-2-13-5"
+            - "traefik.http.services.lb-passbolt-2-13-5.loadbalancer.server.port=80"
+            - "traefik.http.routers.passbolt-2-13-5.middlewares=basicauth"
+            - "traefik.docker.network=traefik-public"
+        restart: always
+        environment:
+            APP_FULL_BASE_URL: "https://${PASSBOLT_APPLICATION_2_13_5_URL}"
+            DATASOURCES_DEFAULT_HOST: "${MARIADB_10_5_8_SERVER_HOSTNAME}"
+            DATASOURCES_DEFAULT_DATABASE: "${MARIADB_10_5_8_SERVER_DATABASE}"
+            DATASOURCES_DEFAULT_USERNAME: "${MARIADB_10_5_8_SERVER_USER}"
+            DATASOURCES_DEFAULT_PASSWORD: "${MARIADB_10_5_8_SERVER_PASSWORD}"
+            DATASOURCES_DEFAULT_PORT: "${MARIADB_10_5_8_SERVER_PORT}"
+            DATASOURCES_QUOTE_IDENTIFIER: "true"
+            PASSBOLT_REGISTRATION_PUBLIC: "false"
+            EMAIL_TRANSPORT_DEFAULT_CLASS_NAME: "${PASSBOLT_APPLICATION_2_13_5_EMAIL_TRANSPORT_DEFAULT_CLASS_NAME}"
+            EMAIL_DEFAULT_FROM: "${PASSBOLT_APPLICATION_2_13_5_EMAIL_DEFAULT_FROM}"
+            EMAIL_TRANSPORT_DEFAULT_HOST: "${PASSBOLT_APPLICATION_2_13_5_EMAIL_TRANSPORT_DEFAULT_HOST}"
+            EMAIL_TRANSPORT_DEFAULT_PORT: "${PASSBOLT_APPLICATION_2_13_5_EMAIL_TRANSPORT_DEFAULT_PORT}"
+            EMAIL_TRANSPORT_DEFAULT_TLS: "${PASSBOLT_APPLICATION_2_13_5_EMAIL_TRANSPORT_DEFAULT_TLS}"
+            EMAIL_TRANSPORT_DEFUALT_USERNAME: "${PASSBOLT_APPLICATION_2_13_5_EMAIL_TRANSPORT_DEFUALT_USERNAME}"
+            EMAIL_TRANSPORT_DEFAULT_PASSWORD: "${PASSBOLT_APPLICATION_2_13_5_EMAIL_TRANSPORT_DEFAULT_PASSWORD}"
+        volumes:
+            - "${PASSBOLT_APPLICATION_2_13_5_VOLUME_GPG}:/var/www/passbolt/config/gpg"
+            - "${PASSBOLT_APPLICATION_2_13_5_VOLUME_IMAGES}:/var/www/passbolt/webroot/img/public"
+            - "./license:/var/www/passbolt/config/license"
+        tmpfs:
+            - /run
+        command: ["/usr/bin/wait-for.sh", "-t", "0", "${MARIADB_10_5_8_SERVER_HOSTNAME}:${MARIADB_10_5_8_SERVER_PORT}", "--", "/docker-entrypoint.sh"]
+        networks:
+            - traefik-public
+            - passbolt-internal
+
+volumes:
+    passbolt-mariadb-data:
+        name: "${MARIADB_10_5_8_SERVER_VOLUME_DATA}"
+    passbolt-application-gpg:
+        name: "${PASSBOLT_APPLICATION_2_13_5_VOLUME_GPG}"
+    passbolt-application-images:
+        name: "${PASSBOLT_APPLICATION_2_13_5_VOLUME_IMAGES}"
+
+networks:
+    traefik-public:
+        external: true
+        name: traefik-public
+    passbolt-internal:
+        external: false
+        name: passbolt-internal
+
