@@ -58,7 +58,7 @@ services:
             ICINGADB_MYSQL_HOST: icinga2-db-mysql
             ICINGADB_MYSQL_DATABASE: icinga.db.database
             ICINGADB_MYSQL_USER: icinga.db.user
-            ICINGADB_MYSQL_PASSWORD: ${ICINGADB_MYSQL_PASSWORD:-icinga.db.password}
+            ICINGADB_MYSQL_PASSWORD: ${ICINGA2_DB_MYSQL_PASSWORD:-icinga.db.password}
             ICINGADB_REDIS_HOST: icinga2-redis
             ICINGADB_REDIS_PORT: 6379
         logging: *default-logging
@@ -76,7 +76,7 @@ services:
             MYSQL_RANDOM_ROOT_PASSWORD: 1
             MYSQL_DATABASE: icinga.db.database
             MYSQL_USER: icinga.db.user
-            MYSQL_PASSWORD: ${ICINGADB_MYSQL_PASSWORD:-icinga.db.password}
+            MYSQL_PASSWORD: ${ICINGA2_DB_MYSQL_PASSWORD:-icinga.db.password}
         logging: *default-logging
         volumes:
             - icinga2-db-data:/var/lib/mysql
@@ -120,7 +120,7 @@ services:
             icingaweb.resources.icinga2-db.db: mysql
             icingaweb.resources.icinga2-db.dbname: icinga.db.database
             icingaweb.resources.icinga2-db.host: icinga2-db-mysql
-            icingaweb.resources.icinga2-db.password: ${ICINGADB_MYSQL_PASSWORD:-icinga.db.password}
+            icingaweb.resources.icinga2-db.password: ${ICINGA2_DB_MYSQL_PASSWORD:-icinga.db.password}
             icingaweb.resources.icinga2-db.type: db
             icingaweb.resources.icinga2-db.username: ${ICINGADB_MYSQL_USER:-icinga.db.user}
             icingaweb.resources.icinga2-web-mysql-8-0-23.charset: utf8mb4
