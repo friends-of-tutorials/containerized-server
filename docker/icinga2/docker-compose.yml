@@ -115,6 +115,7 @@ services:
             icingaweb.modules.monitoring.commandtransports.icinga2.password: ${ICINGAWEB_ICINGA2_API_USER_PASSWORD:-icinga.web.password}
             icingaweb.modules.monitoring.commandtransports.icinga2.transport: api
             icingaweb.modules.monitoring.commandtransports.icinga2.username: icinga.web.user
+            # icingaweb.passwords.icingaweb2.[user] is assigned to $ICINGA2_WEB_USER
             icingaweb.passwords.icingaweb2.admin: "${ICINGA2_WEB_PASSWORD}"
             icingaweb.resources.icinga2-db.charset: utf8mb4
             icingaweb.resources.icinga2-db.db: mysql
