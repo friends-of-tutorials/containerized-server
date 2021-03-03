@@ -137,7 +137,7 @@ services:
         logging: *default-logging
         labels:
             - "traefik.enable=true"
-            - "traefik.http.routers.icinga2-web.rule=Host(`icinga.ixno.de`)"
+            - "traefik.http.routers.icinga2-web.rule=Host(`${ICINGA2_WEB_URL}`)"
             - "traefik.http.routers.icinga2-web.entrypoints=websecure"
             - "traefik.http.routers.icinga2-web.tls=true"
             - "traefik.http.routers.icinga2-web.tls.certresolver=letsencryptresolver"
