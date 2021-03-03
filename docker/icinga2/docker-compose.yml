@@ -1,0 +1,189 @@
+version: '3.7'
+# sources from https://github.com/lippserd/docker-compose-icinga/blob/master/docker-compose.yml
+
+# default-logging logging template
+x-logging:
+    &default-logging
+    driver: "json-file"
+    options:
+        max-file: "10"
+        max-size: "1M"
+
+# add services
+services:
+    # icinga2 init services
+    icinga2-init:
+        image: "icinga/icinga2:2.12.3"
+        container_name: "icinga2-2.12.3-init"
+        hostname: "icinga2-2-12-3-init"
+        command: [ "/config/init-icinga2.sh" ]
+        environment:
+            ICINGA_MASTER: 1
+        logging: *default-logging
+        volumes:
+            - icinga2-data:/data
+            - ./icingadb.conf:/config/icingadb.conf
+            - ./icingaweb-api-user.conf:/config/icingaweb-api-user.conf
+            - ./init-icinga2.sh:/config/init-icinga2.sh
+        networks:
+            - icinga2-internal
+
+    # the icinga db on port 5665
+    icinga2:
+        image: "icinga/icinga2:2.12.3"
+        container_name: "icinga2-2.12.3"
+        hostname: "icinga2-2-12-3"
+        depends_on:
+            - icinga2-redis
+            - icinga2-init
+        environment:
+            ICINGA_MASTER: 1
+        logging: *default-logging
+        ports:
+            - 5665:5665
+        volumes:
+            - icinga2-data:/data
+        networks:
+            - icinga2-internal
+
+    # icingadb
+    icinga2-db:
+        image: "icinga/icingadb:master"
+        container_name: "icinga2-db-master"
+        hostname: "icinga2-db-master"
+        depends_on:
+            - icinga2-db-mysql
+            - icinga2-redis
+        environment:
+            ICINGADB_MYSQL_HOST: icinga2-db-mysql
+            ICINGADB_MYSQL_DATABASE: icinga.db.database
+            ICINGADB_MYSQL_USER: icinga.db.user
+            ICINGADB_MYSQL_PASSWORD: ${ICINGADB_MYSQL_PASSWORD:-icinga.db.password}
+            ICINGADB_REDIS_HOST: icinga2-redis
+            ICINGADB_REDIS_PORT: 6379
+        logging: *default-logging
+        restart: unless-stopped
+        networks:
+            - icinga2-internal
+
+    # the database for icinga2-db
+    icinga2-db-mysql:
+        image: "mysql:8.0.23"
+        container_name: "icinga2-db-mysql-8.0.23"
+        hostname: "icinga2-db-mysql-8-0-23"
+        command: --default-authentication-plugin=mysql_native_password
+        environment:
+            MYSQL_RANDOM_ROOT_PASSWORD: 1
+            MYSQL_DATABASE: icinga.db.database
+            MYSQL_USER: icinga.db.user
+            MYSQL_PASSWORD: ${ICINGADB_MYSQL_PASSWORD:-icinga.db.password}
+        logging: *default-logging
+        volumes:
+            - icinga2-db-data:/var/lib/mysql
+        networks:
+            - icinga2-internal
+
+    # the redis cache for icinga2
+    icinga2-redis:
+        image: "redis:6.0.2"
+        container_name: "icinga2-redis-6.0.2"
+        hostname: "icinga2-redis-6-0-2"
+        logging: *default-logging
+        networks:
+            - icinga2-internal
+
+    # the web gui for icinga2
+    icinga2-web:
+        image: "icinga/icingaweb2:master"
+        container_name: "icinga2-web-master"
+        hostname: "icinga2-web-master"
+        depends_on:
+            - icinga2-web-mysql-8-0-23
+        environment:
+            icingaweb.authentication.icingaweb2.backend: db
+            icingaweb.authentication.icingaweb2.resource: icinga2-web-mysql-8-0-23
+            icingaweb.config.global.config_backend: db
+            icingaweb.config.global.config_resource: icinga2-web-mysql-8-0-23
+            icingaweb.config.logging.log: php
+            icingaweb.enabledModules: icingadb,ipl
+            icingaweb.groups.icingaweb2.backend: db
+            icingaweb.groups.icingaweb2.resource: icinga2-web-mysql-8-0-23
+            icingaweb.modules.icingadb.config.icingadb.resource: icinga2-db
+            icingaweb.modules.icingadb.config.redis1.host: icinga2-redis
+            icingaweb.modules.icingadb.config.redis1.port: 6379
+            icingaweb.modules.monitoring.commandtransports.icinga2.host: icinga2
+            icingaweb.modules.monitoring.commandtransports.icinga2.password: ${ICINGAWEB_ICINGA2_API_USER_PASSWORD:-icinga.web.password}
+            icingaweb.modules.monitoring.commandtransports.icinga2.transport: api
+            icingaweb.modules.monitoring.commandtransports.icinga2.username: icinga.web.user
+            icingaweb.passwords.icingaweb2.admin: "${ICINGA2_WEB_PASSWORD}"
+            icingaweb.resources.icinga2-db.charset: utf8mb4
+            icingaweb.resources.icinga2-db.db: mysql
+            icingaweb.resources.icinga2-db.dbname: icinga.db.database
+            icingaweb.resources.icinga2-db.host: icinga2-db-mysql
+            icingaweb.resources.icinga2-db.password: ${ICINGADB_MYSQL_PASSWORD:-icinga.db.password}
+            icingaweb.resources.icinga2-db.type: db
+            icingaweb.resources.icinga2-db.username: ${ICINGADB_MYSQL_USER:-icinga.db.user}
+            icingaweb.resources.icinga2-web-mysql-8-0-23.charset: utf8mb4
+            icingaweb.resources.icinga2-web-mysql-8-0-23.db: mysql
+            icingaweb.resources.icinga2-web-mysql-8-0-23.dbname: icinga.web.db
+            icingaweb.resources.icinga2-web-mysql-8-0-23.host: icinga2-web-mysql-8-0-23
+            icingaweb.resources.icinga2-web-mysql-8-0-23.password: ${ICINGAWEB_MYSQL_PASSWORD:-icinga.web.password}
+            icingaweb.resources.icinga2-web-mysql-8-0-23.type: db
+            icingaweb.resources.icinga2-web-mysql-8-0-23.username: icinga.web.user
+            icingaweb.roles.Administrators.groups: Administrators
+            icingaweb.roles.Administrators.permissions: '*'
+            icingaweb.roles.Administrators.users: "${ICINGA2_WEB_USER}"
+        logging: *default-logging
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.icinga2-web.rule=Host(`icinga.ixno.de`)"
+            - "traefik.http.routers.icinga2-web.entrypoints=websecure"
+            - "traefik.http.routers.icinga2-web.tls=true"
+            - "traefik.http.routers.icinga2-web.tls.certresolver=letsencryptresolver"
+            - "traefik.http.routers.icinga2-web.service=lb-icinga2-web"
+            - "traefik.http.services.lb-icinga2-web.loadbalancer.server.port=8080"
+            - "traefik.http.routers.icinga2-web.middlewares=adminauth"
+            - "traefik.docker.network=traefik-public"
+        restart: unless-stopped
+        volumes:
+            - icinga2-web-data:/data
+        networks:
+            - traefik-public
+            - icinga2-internal
+
+    # the mysql database for icinga2 web gui
+    icinga2-web-mysql-8-0-23:
+        image: "mysql:8.0.23"
+        container_name: "icinga2-web-mysql-8.0.23"
+        hostname: "icinga2-web-mysql-8-0-23"
+        command: --default-authentication-plugin=mysql_native_password
+        environment:
+            MYSQL_RANDOM_ROOT_PASSWORD: 1
+            MYSQL_DATABASE: icinga.web.db
+            MYSQL_USER: icinga.web.user
+            MYSQL_PASSWORD: ${ICINGAWEB_MYSQL_PASSWORD:-icinga.web.password}
+        logging: *default-logging
+        volumes:
+            - icinga2-web-db-data:/var/lib/mysql
+        networks:
+            - icinga2-internal
+
+# add all icinga2 volumes
+volumes:
+    icinga2-data:
+        name: icinga2-data
+    icinga2-db-data:
+        name: icinga2-db-data
+    icinga2-web-data:
+        name: icinga2-web-data
+    icinga2-web-db-data:
+        name: icinga2-web-db-data
+
+# add internal and external networks
+networks:
+    traefik-public:
+        external: true
+        name: traefik-public
+    icinga2-internal:
+        external: false
+        name: icinga2-internal
