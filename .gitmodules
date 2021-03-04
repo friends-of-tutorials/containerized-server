@@ -1,0 +1,3 @@
+[submodule "docker/mermaid/mermaid-live-editor"]
+	path = docker/mermaid/mermaid-live-editor
+	url = https://github.com/mermaid-js/mermaid-live-editor.git

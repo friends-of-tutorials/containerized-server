@@ -1,0 +1,35 @@
+version: "3.7"
+services:
+    # nginx-1.19.7 docker container with mermaid
+    mermaid-8-9-1:
+        build:
+            dockerfile: "Dockerfile"
+            context: .
+        image: "${MERMAID_8_9_1_IMAGE_NAME}"
+        container_name: "${MERMAID_8_9_1_CONTAINER_NAME}"
+        hostname: "${mermaid-8-9-1}"
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.mermaid-8-9-1.rule=Host(`${MERMAID_8_9_1_URL}`)"
+            - "traefik.http.routers.mermaid-8-9-1.entrypoints=websecure"
+            - "traefik.http.routers.mermaid-8-9-1.tls=true"
+            - "traefik.http.routers.mermaid-8-9-1.tls.certresolver=letsencryptresolver"
+            - "traefik.http.routers.mermaid-8-9-1.service=lb-mermaid-8-9-1"
+            - "traefik.http.services.lb-mermaid-8-9-1.loadbalancer.server.port=80"
+            - "traefik.http.routers.mermaid-8-9-1.middlewares=basicauth"
+            - "traefik.docker.network=traefik-public"
+        restart: always
+        volumes:
+            - "./mermaid-live-editor/docs/:/usr/share/nginx/html/"
+        networks:
+            - traefik-public
+            - mermaid-internal
+
+networks:
+    traefik-public:
+        external: true
+        name: traefik-public
+    mermaid-internal:
+        external: false
+        name: mermaid-internal
+
