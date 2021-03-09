@@ -18,3 +18,8 @@ echo -n 'Restart lamp... '
 cd "$ENV_ROOT_PATH/lamp" && docker-compose down && docker-compose up -d
 echo 'Done.' && echo
 
+# restart endlessh
+echo -n 'Restart endlessh... '
+cd "$ENV_ROOT_PATH/endlessh" && docker-compose down && docker-compose up -d
+echo 'Done.' && echo
+
