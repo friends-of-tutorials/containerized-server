@@ -1,0 +1,17 @@
+version: "3.4"
+services:
+    endless-1-1:
+        image: "${ENDLESSH_1_1_BUSYBOX_IMAGE}"
+        container_name: "${ENDLESSH_1_1_BUSYBOX_CONTAINER_NAME}"
+        hostname: "${ENDLESSH_1_1_BUSYBOX_HOSTNAME}"
+        ports:
+            - 22:2222
+        restart: always
+        networks:
+            - endless-internal
+
+networks:
+    endless-internal:
+        external: false
+        name: endless-internal
+
