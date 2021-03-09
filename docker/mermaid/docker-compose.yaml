@@ -7,7 +7,7 @@ services:
             context: .
         image: "${MERMAID_8_9_1_IMAGE_NAME}"
         container_name: "${MERMAID_8_9_1_CONTAINER_NAME}"
-        hostname: "${mermaid-8-9-1}"
+        hostname: "${MERMAID_8_9_1_HOSTNAME}"
         labels:
             - "traefik.enable=true"
             - "traefik.http.routers.mermaid-8-9-1.rule=Host(`${MERMAID_8_9_1_URL}`)"

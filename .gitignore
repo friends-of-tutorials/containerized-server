@@ -15,3 +15,6 @@
 # lamp
 /docker/lamp/html/vendor/
 
+# ignore own docker container
+/docker/_own
+
