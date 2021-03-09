@@ -1,0 +1,38 @@
+version: "3.7"
+services:
+    # nginx-1.19.7 docker container with content
+    nginx-1-19-7-alpine:
+        build:
+            dockerfile: "Dockerfile"
+            context: .
+        image: "${NGINX_1_19_7_ALPINE_IMAGE_NAME}"
+        container_name: "${NGINX_1_19_7_ALPINE_CONTAINER_NAME}"
+        hostname: "${NGINX_1_19_7_ALPINE_HOSTNAME}"
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.nginx-1-19-7-alpine.rule=Host(`${NGINX_1_19_7_ALPINE_URL}`,`${NGINX_1_19_7_ALPINE_URL_WWW}`)"
+            - "traefik.http.routers.nginx-1-19-7-alpine.entrypoints=websecure"
+            - "traefik.http.routers.nginx-1-19-7-alpine.tls=true"
+            - "traefik.http.routers.nginx-1-19-7-alpine.tls.certresolver=letsencryptresolver"
+            - "traefik.http.routers.nginx-1-19-7-alpine.service=lb-nginx-1-19-7-alpine"
+            - "traefik.http.routers.nginx-1-19-7-alpine.middlewares=redirect-www"
+            - "traefik.http.middlewares.redirect-www.redirectregex.regex=^https?://${NGINX_1_19_7_ALPINE_URL}/(.*)"
+            - "traefik.http.middlewares.redirect-www.redirectregex.replacement=https://${NGINX_1_19_7_ALPINE_URL_WWW}"
+            - "traefik.http.middlewares.redirect-www.redirectregex.permanent=true"
+            - "traefik.http.services.lb-nginx-1-19-7-alpine.loadbalancer.server.port=80"
+            - "traefik.docker.network=traefik-public"
+        restart: always
+        volumes:
+            - "./html/:/usr/share/nginx/html/"
+        networks:
+            - traefik-public
+            - redirect-internal
+
+networks:
+    traefik-public:
+        external: true
+        name: traefik-public
+    redirect-internal:
+        external: false
+        name: redirect-internal
+
