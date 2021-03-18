@@ -10,6 +10,8 @@ services:
             - "--providers.docker.endpoint=unix:///var/run/docker.sock"
             - "--providers.docker.exposedbydefault=false"
             - "--providers.docker.network=traefik-public"
+            # Add dynamic configuration
+            - "--providers.file.filename=/dynamic_conf.yml"
             # Configure entrypoint
             - "--entrypoints.web.address=:80"
             - "--entrypoints.websecure.address=:443"
@@ -27,6 +29,8 @@ services:
             - 80:80
             - 443:443
         volumes:
+            # Add dynamic configuration
+            - ./config/dynamic_conf.yml:/dynamic_conf.yml
             # To persist certificates
             - traefik-certificates:/letsencrypt
             # So that Traefik can listen to the Docker events
@@ -39,6 +43,7 @@ services:
             # Add traefik.domain.tld
             - "traefik.http.routers.traefik-2-4-3.rule=Host(`${TRAEFIK_2_4_3_PROXY_URL}`)"
             - "traefik.http.routers.traefik-2-4-3.entrypoints=websecure"
+            - "traefik.http.routers.traefik-2-4-3.tls=true"
             - "traefik.http.routers.traefik-2-4-3.tls.certresolver=letsencryptresolver"
             # Add api service
             - "traefik.http.routers.traefik-2-4-3.service=api@internal"
@@ -47,6 +52,8 @@ services:
             # Define some global authentifications
             - "traefik.http.middlewares.adminauth.basicauth.users=${TRAEFIK_2_4_3_PROXY_ADMINAUTH}"
             - "traefik.http.middlewares.basicauth.basicauth.users=${TRAEFIK_2_4_3_PROXY_BASICAUTH}"
+            # Add dynamic configuration
+            - "providers.file.filename=/dynamic_conf.yml"
 
 volumes:
     traefik-certificates:
