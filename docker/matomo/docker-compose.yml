@@ -1,0 +1,73 @@
+version: '3'
+services:
+
+    # configure db
+    matomo-mariadb-10-5-8:
+        image: "${MARIADB_10_5_8_SERVER_IMAGE}"
+        container_name: "${MARIADB_10_5_8_SERVER_CONTAINER_NAME}"
+        hostname: "${MARIADB_10_5_8_SERVER_HOSTNAME}"
+        command: --max-allowed-packet=64MB
+        restart: always
+        volumes:
+            - ./database:/var/lib/mysql
+        environment:
+            - MYSQL_RANDOM_ROOT_PASSWORD= '1'
+            - MYSQL_PASSWORD=${MARIADB_10_5_8_SERVER_PASSWORD}
+            - MYSQL_DATABASE=${MARIADB_10_5_8_SERVER_DATABASE}
+            - MYSQL_USER=${MARIADB_10_5_8_SERVER_USER}
+        networks:
+            - matomo-internal
+
+    # configure matomo app (fpm)
+    matomo-4-2-1-fpm-alpine:
+        image: "${MATOMO_APPLICATION_4_2_1_IMAGE}"
+        container_name: "${MATOMO_APPLICATION_4_2_1_CONTAINER_NAME}"
+        hostname: "${MATOMO_APPLICATION_4_2_1_HOSTNAME}"
+        depends_on:
+            - "${MARIADB_10_5_8_SERVER_HOSTNAME}"
+        restart: always
+        volumes:
+            - ./app:/var/www/html
+        environment:
+            - MATOMO_DATABASE_HOST=${MARIADB_10_5_8_SERVER_HOSTNAME}
+            - MATOMO_DATABASE_ADAPTER=mysql
+            - MATOMO_DATABASE_TABLES_PREFIX=matomo_
+            - MATOMO_DATABASE_USERNAME=${MARIADB_10_5_8_SERVER_USER}
+            - MATOMO_DATABASE_PASSWORD=${MARIADB_10_5_8_SERVER_PASSWORD}
+            - MATOMO_DATABASE_DBNAME=${MARIADB_10_5_8_SERVER_DATABASE}
+        networks:
+            - matomo-internal
+
+    # configure matomo webserver (nginx)
+    matomo-nginx-1-19-7-alpine:
+        image: "${MATOMO_NGINX_1_19_7_ALPINE_IMAGE_NAME}"
+        container_name: "${MATOMO_NGINX_1_19_7_ALPINE_CONTAINER_NAME}"
+        hostname: "${MATOMO_NGINX_1_19_7_ALPINE_HOSTNAME}"
+        depends_on:
+            - "${MATOMO_APPLICATION_4_2_1_HOSTNAME}"
+        restart: always
+        volumes:
+            - ./app:/var/www/html:ro
+            - ./matomo.conf:/etc/nginx/conf.d/default.conf:ro
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.matomo-nginx-1-19-7-alpine.rule=Host(`${MATOMO_NGINX_1_19_7_ALPINE_URL}`)"
+            - "traefik.http.routers.matomo-nginx-1-19-7-alpine.entrypoints=websecure"
+            - "traefik.http.routers.matomo-nginx-1-19-7-alpine.tls=true"
+            - "traefik.http.routers.matomo-nginx-1-19-7-alpine.tls.certresolver=letsencryptresolver"
+            - "traefik.http.routers.matomo-nginx-1-19-7-alpine.service=lb-matomo-nginx-1-19-7-alpine"
+            - "traefik.http.services.lb-matomo-nginx-1-19-7-alpine.loadbalancer.server.port=80"
+            - "traefik.docker.network=traefik-public"
+        networks:
+            - traefik-public
+            - matomo-internal
+
+# configure network
+networks:
+    traefik-public:
+        external: true
+        name: traefik-public
+    matomo-internal:
+        external: false
+        name: matomo-internal
+
