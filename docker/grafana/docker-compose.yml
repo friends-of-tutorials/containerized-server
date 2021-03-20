@@ -1,0 +1,95 @@
+version: '3'
+
+# configure services
+services:
+
+    # Prometheus v2.25.2 (monitoring and alerting)
+    # port: 9090
+    # https://prometheus.io/
+    grafana-prometheus-2-25-2:
+        image: "${PROMETHEUS_2_25_2_IMAGE}"
+        container_name: "${PROMETHEUS_2_25_2_CONTAINER_NAME}"
+        hostname: "${PROMETHEUS_2_25_2_HOSTNAME}"
+        restart: always
+        volumes:
+            - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+        depends_on:
+            - "${PROMETHEUS_NODE_EXPORTER_1_1_2_HOSTNAME}"
+            - "${CADVISOR_0_33_0_HOSTNAME}"
+        networks:
+            - grafana-internal
+
+    # Prometheus node exporter v1.1.2 (node monitoring)
+    # port: 9100
+    # https://github.com/prometheus/node_exporter
+    grafana-node-exporter-1-1-2:
+        image: "${PROMETHEUS_NODE_EXPORTER_1_1_2_IMAGE}"
+        container_name: "${PROMETHEUS_NODE_EXPORTER_1_1_2_CONTAINER_NAME}"
+        hostname: "${PROMETHEUS_NODE_EXPORTER_1_1_2_HOSTNAME}"
+        restart: always
+        volumes:
+            - /proc:/host/proc:ro
+            - /sys:/host/sys:ro
+            - /:/rootfs:ro
+        command:
+            - '--path.procfs=/host/proc'
+            - '--path.sysfs=/host/sys'
+            - '--path.rootfs=/rootfs'
+            - '--collector.filesystem.ignored-mount-points="^(/rootfs|/host|)/(sys|proc|dev|host|etc)($$|/)"'
+            - '--collector.filesystem.ignored-fs-types="^(sys|proc|auto|cgroup|devpts|ns|au|fuse\.lxc|mqueue)(fs|)$$"'
+        networks:
+            - grafana-internal
+
+    # cAdvisor v0.33.0 (container monitoring)
+    # port: 8080
+    # https://github.com/google/cadvisor
+    grafana-cadvisor-0-33-0:
+        image: "${CADVISOR_0_33_0_IMAGE}"
+        container_name: "${CADVISOR_0_33_0_CONTAINER_NAME}"
+        hostname: "${CADVISOR_0_33_0_HOSTNAME}"
+        restart: always
+        volumes:
+            - /:/rootfs:ro
+            - /var/run:/var/run:rw
+            - /sys:/sys:ro
+            - /var/lib/docker/:/var/lib/docker:ro
+        networks:
+            - grafana-internal
+
+    # Grafana 7.4.5 (dashboard)
+    # port: 3000
+    # https://grafana.com/
+    grafana-grafana-7-4-5:
+        image: "${GRAFANA_7_4_5_IMAGE}"
+        container_name: "${GRAFANA_7_4_5_CONTAINER_NAME}"
+        hostname: "${GRAFANA_7_4_5_HOSTNAME}"
+        restart: always
+        volumes:
+            - ./grafana:/var/lib/grafana
+        user: "1000" # USER ID des Docker Users anpassen
+        depends_on:
+            - "${PROMETHEUS_2_25_2_HOSTNAME}"
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.grafana-grafana-7-4-5.rule=Host(`${GRAFANA_7_4_5_URL}`)"
+            - "traefik.http.routers.grafana-grafana-7-4-5.entrypoints=websecure"
+            - "traefik.http.routers.grafana-grafana-7-4-5.tls=true"
+            - "traefik.http.routers.grafana-grafana-7-4-5.tls.certresolver=letsencryptresolver"
+            - "traefik.http.routers.grafana-grafana-7-4-5.service=lb-mon-grafana"
+            - "traefik.http.services.lb-mon-grafana.loadbalancer.server.port=3000"
+            - "traefik.docker.network=traefik-public"
+            - "traefik.http.routers.grafana-grafana-7-4-5.middlewares=adminauth"
+            - "traefik.http.routers.grafana-secure.middlewares=secHeaders@file"
+        networks:
+            - traefik-public
+            - grafana-internal
+
+# configure network
+networks:
+    traefik-public:
+        external: true
+        name: traefik-public
+    grafana-internal:
+        external: false
+        name: grafana-internal
+
