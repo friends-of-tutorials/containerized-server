@@ -1,0 +1,54 @@
+version: "3.3"
+
+# configure services
+services:
+
+    # configure portainer
+    portainer-ce-2-1-1:
+        image: "${PORTAINER_2_1_1_IMAGE}"
+        container_name: "${PORTAINER_2_1_1_CONTAINER_NAME}"
+        hostname: "${PORTAINER_2_1_1_HOSTNAME}"
+        command: "-H unix:///var/run/docker.sock"
+        restart: always
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+            - portainer-data:/data
+        labels:
+            # Enable traefik
+            - "traefik.enable=true"
+            # Add frontend (Portainer)
+            - "traefik.http.routers.portainer-ce-2-1-1-frontend.rule=Host(`${PORTAINER_2_1_1_FRONTEND_URL}`)"
+            - "traefik.http.routers.portainer-ce-2-1-1-frontend.entrypoints=websecure"
+            - "traefik.http.routers.portainer-ce-2-1-1-frontend.tls=true"
+            - "traefik.http.routers.portainer-ce-2-1-1-frontend.tls.certresolver=letsencryptresolver"
+            - "traefik.http.routers.portainer-ce-2-1-1-frontend.service=lb-portainer-ce-2-1-1-frontend"
+            #- "traefik.http.routers.portainer-ce-2-1-1-frontend.middlewares=adminauth"
+            - "traefik.http.services.lb-portainer-ce-2-1-1-frontend.loadbalancer.server.port=9000"
+            # Add Edge
+            - "traefik.http.routers.portainer-ce-2-1-1-edge.rule=Host(`${PORTAINER_2_1_1_EDGE_URL}`)"
+            - "traefik.http.routers.portainer-ce-2-1-1-edge.entrypoints=websecure"
+            - "traefik.http.routers.portainer-ce-2-1-1-edge.tls=true"
+            - "traefik.http.routers.portainer-ce-2-1-1-edge.tls.certresolver=letsencryptresolver"
+            - "traefik.http.routers.portainer-ce-2-1-1-edge.service=lb-portainer-ce-2-1-1-edge"
+            - "traefik.http.routers.portainer-ce-2-1-1-edge.middlewares=adminauth"
+            - "traefik.http.services.lb-portainer-ce-2-1-1-edge.loadbalancer.server.port=8000"
+            # Add network
+            - "traefik.docker.network=traefik-public"
+        networks:
+            - traefik-public
+            - portainer-internal
+
+# configure networks
+networks:
+    traefik-public:
+        external: true
+        name: traefik-public
+    portainer-internal:
+        external: false
+        name: portainer-internal
+
+# configure volumes
+volumes:
+    portainer-data:
+        name: "${PORTAINER_2_1_1_VOLUME_NAME}"
+
