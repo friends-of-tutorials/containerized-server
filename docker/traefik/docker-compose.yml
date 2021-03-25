@@ -46,6 +46,7 @@ services:
             - traefik-certificates:/letsencrypt
             # So that Traefik can listen to the Docker events
             - /var/run/docker.sock:/var/run/docker.sock:ro
+        restart: always
         networks:
             - traefik-public
         labels:
