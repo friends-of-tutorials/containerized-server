@@ -1,0 +1,96 @@
+version: "3.7"
+
+# Preparation:
+# ------------
+# $ mkdir -p html/public
+# $ echo "<?php phpinfo();" > html/public/index.php
+# $ cp .env.dist .env
+#
+# docker-compose.yaml and .env:
+# -----------------------------
+# * Change domain.tld
+# * Change domain-tld
+
+# configure services
+services:
+
+    # PHP 8.0.3 container with apache 2.4
+    php-8-0-3-apache-domain-tld:
+        build:
+            dockerfile: "${PHP_APACHE_SERVER_DOCKERFILE}"
+            context: .
+        image: "${PHP_APACHE_SERVER_IMAGE_NAME}"
+        container_name: "${PHP_APACHE_SERVER_CONTAINER_NAME}"
+        hostname: "${PHP_APACHE_SERVER_HOSTNAME}"
+        labels:
+            # enable
+            - "traefik.enable=true"
+            # domain
+            - "traefik.http.routers.php-8-0-3-apache-domain-tld.rule=Host(`${GENERAL_URL}`,`www.${GENERAL_URL}`)"
+            - "traefik.http.routers.php-8-0-3-apache-domain-tld.entrypoints=websecure"
+            - "traefik.http.routers.php-8-0-3-apache-domain-tld.tls=true"
+            - "traefik.http.routers.php-8-0-3-apache-domain-tld.tls.certresolver=letsencryptresolver"
+            - "traefik.http.routers.php-8-0-3-apache-domain-tld.service=lb-php-8-0-3-apache-domain-tld"
+            - "traefik.http.routers.php-8-0-3-apache-domain-tld.middlewares=redirect-www-domain-tld"
+            - "traefik.http.middlewares.redirect-www-domain-tld.redirectregex.regex=^https?://${GENERAL_URL}/(.*)"
+            - "traefik.http.middlewares.redirect-www-domain-tld.redirectregex.replacement=https://www.${GENERAL_URL}"
+            - "traefik.http.middlewares.redirect-www-domain-tld.redirectregex.permanent=true"
+            - "traefik.http.services.lb-php-8-0-3-apache-domain-tld.loadbalancer.server.port=80"
+            # networt
+            - "traefik.docker.network=traefik-public"
+        restart: always
+        volumes:
+            - "./html/:/var/www/html/"
+        networks:
+            - traefik-public
+            - domain-tld-internal
+        depends_on:
+            - "${PHP_APACHE_SERVER_DEPENDS_ON}"
+
+    # PHP 8.0.3 cli container
+    php-8-0-3-cli-domain-tld:
+        build:
+            dockerfile: "${PHP_CLI_DOCKERFILE}"
+            context: .
+        image: "${PHP_CLI_IMAGE_NAME}"
+        container_name: "${PHP_CLI_CONTAINER_NAME}"
+        hostname: "${PHP_CLI_HOSTNAME}"
+        restart: always
+        command: "cron -f"
+        working_dir: "/var/www/html"
+        volumes:
+            - "./html/:/var/www/html/"
+        networks:
+            - domain-tld-internal
+        depends_on:
+            - "${PHP_CLI_DEPENDS_ON}"
+
+    # MySQL Server
+    mysql-8-0-23-domain-tld:
+        image: "${MYSQL_SERVER_IMAGE}"
+        container_name: "${MYSQL_SERVER_CONTAINER_NAME}"
+        hostname: "${MYSQL_SERVER_HOSTNAME}"
+        labels:
+            - "traefik.enable=false"
+        restart: always
+        environment:
+            MYSQL_ROOT_PASSWORD: "${MYSQL_SERVER_ROOT_PASSWORD}"
+        volumes:
+            - mysql-data:/var/lib/mysql
+        networks:
+            - domain-tld-internal
+
+# configure volumes
+volumes:
+    mysql-data:
+        name: "${MYSQL_SERVER_DATA_VOLUME_ID}"
+
+# configure networks
+networks:
+    traefik-public:
+        external: true
+        name: traefik-public
+    domain-tld-internal:
+        external: false
+        name: domain-tld-internal
+
