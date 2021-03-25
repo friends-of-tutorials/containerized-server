@@ -1,0 +1,57 @@
+version: "3"
+
+# More info at:
+# -------------
+# * https://github.com/pi-hole/docker-pi-hole/
+# * https://docs.pi-hole.net/
+#
+# Preparation:
+# ------------
+# $ mkdir pihole
+# $ mkdir dnsmasq
+
+# configure services
+services:
+    pihole-5-7:
+        image: "${PIHOLE_5_7_IMAGE}"
+        container_name: "${PIHOLE_5_7_CONTAINER_NAME}"
+        hostname: "${PIHOLE_5_7_HOSTNAME}"
+        ports:
+            - "53:53/tcp"
+            - "53:53/udp"
+            - "67:67/udp"
+        environment:
+            TZ: "${PIHOLE_5_7_TIMEZONE}"
+            WEBPASSWORD: "${PIHOLE_5_7_WEBPASSWORD}"
+            IPv6: "${PIHOLE_5_7_IPV6}"
+        volumes:
+            - '/etc/timezone:/etc/timezone:ro'
+            - './pihole/:/etc/pihole/'
+            - './dnsmasq/:/etc/dnsmasq.d/'
+        dns:
+            - 127.0.0.1
+            - ${PIHOLE_5_7_LOCAL_DNS}
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.pihole-5-7.rule=Host(`${PIHOLE_5_7_FRONTEND_URL}`)"
+            - "traefik.http.routers.pihole-5-7.entrypoints=websecure"
+            - "traefik.http.routers.pihole-5-7.tls=true"
+            - "traefik.http.routers.pihole-5-7.tls.certresolver=letsencryptresolver"
+            - "traefik.http.routers.pihole-5-7.service=lb-pihole-5-7"
+            - "traefik.http.services.lb-pihole-5-7.loadbalancer.server.port=80"
+            - "traefik.http.routers.pihole-5-7.middlewares=adminauth"
+            - "traefik.docker.network=traefik-public"
+        restart: always
+        networks:
+            - traefik-public
+            - pihole-internal
+
+# configure networks
+networks:
+    traefik-public:
+        external: true
+        name: traefik-public
+    pihole-internal:
+        external: false
+        name: pihole-internal
+
