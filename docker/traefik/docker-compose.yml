@@ -1,3 +1,11 @@
+# -------
+# README:
+# -------
+#
+# Create network:
+# ---------------
+# $ docker network create traefik-public
+#
 version: '3'
 
 services:
@@ -6,6 +14,8 @@ services:
         container_name: "${TRAEFIK_2_4_3_PROXY_CONTAINER_NAME}"
         hostname: "${TRAEFIK_2_4_3_PROXY_HOSTNAME}"
         command:
+            # Debug mode
+            # - "--log.level=DEBUG"
             # Docker swarm configuration
             - "--providers.docker.endpoint=unix:///var/run/docker.sock"
             - "--providers.docker.exposedbydefault=false"
@@ -18,6 +28,7 @@ services:
             # SSL configuration
             - "--certificatesresolvers.letsencryptresolver.acme.httpchallenge=true"
             - "--certificatesresolvers.letsencryptresolver.acme.httpchallenge.entrypoint=web"
+            # - "--certificatesresolvers.letsencryptresolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
             - "--certificatesresolvers.letsencryptresolver.acme.email=${TRAEFIK_2_4_3_PROXY_EMAIL}"
             - "--certificatesresolvers.letsencryptresolver.acme.storage=/letsencrypt/acme.json"
             # Global HTTP -> HTTPS
@@ -35,6 +46,7 @@ services:
             - traefik-certificates:/letsencrypt
             # So that Traefik can listen to the Docker events
             - /var/run/docker.sock:/var/run/docker.sock:ro
+        restart: always
         networks:
             - traefik-public
         labels:
@@ -57,9 +69,10 @@ services:
 
 volumes:
     traefik-certificates:
+        name: "traefik-certificates"
 
 networks:
     traefik-public:
         external: true
-        name: traefik-public
+        name: "traefik-public"
 
