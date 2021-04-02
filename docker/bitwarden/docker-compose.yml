@@ -1,0 +1,35 @@
+version: '3.4'
+services:
+
+    # Bitwarden 1.20.0
+    bitwarden-1-20-0:
+        image: "${BITWARDEN_APPLICATION_1_20_0_IMAGE}"
+        container_name: "${BITWARDEN_APPLICATION_1_20_0_CONTAINER_NAME}"
+        hostname: "${BITWARDEN_APPLICATION_1_20_0_HOSTNAME}"
+        tty: true
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.bitwarden-1-20-0.rule=Host(`${BITWARDEN_APPLICATION_1_20_0_URL}`)"
+            - "traefik.http.routers.bitwarden-1-20-0.entrypoints=websecure"
+            - "traefik.http.routers.bitwarden-1-20-0.tls=true"
+            - "traefik.http.routers.bitwarden-1-20-0.tls.certresolver=letsencryptresolver"
+            - "traefik.http.routers.bitwarden-1-20-0.service=lb-bitwarden-1-20-0"
+            - "traefik.http.services.lb-bitwarden-1-20-0.loadbalancer.server.port=80"
+            - "traefik.docker.network=traefik-public"
+        restart: always
+        environment:
+            SIGNUPS_ALLOWED: "false"
+        volumes:
+            - "./bw-data/:/data/"
+        networks:
+            - traefik-public
+            - bitwarden-internal
+
+networks:
+    traefik-public:
+        external: true
+        name: traefik-public
+    bitwarden-internal:
+        external: false
+        name: bitwarden-internal
+
