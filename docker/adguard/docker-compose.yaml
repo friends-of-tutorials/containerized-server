@@ -1,0 +1,81 @@
+version: "3.7"
+
+# More info at:
+# -------------
+# * https://hub.docker.com/r/adguard/adguardhome
+# * https://adguard.com/de/welcome.html
+#
+# Preparation:
+# ------------
+# $ mkdir -p data/adguardhome/conf
+
+# configure services
+services:
+    adguard-0-106-0:
+        image: "${ADGUARD_0_106_IMAGE}"
+        container_name: "${ADGUARD_0_106_CONTAINER_NAME}"
+        hostname: "${ADGUARD_0_106_HOSTNAME}"
+        ports:
+            # DNS Ports
+            - "53:53/tcp"
+            - "53:53/udp"
+            # DNS over HTTPs
+            #- "443:443/tcp" # !!! Used by traefik !!!
+            # DNS over TLS
+            #- "853:853/tcp"
+            # DNS over QUIC
+            #- "784:784/udp"
+            # DNS Crypt
+            #- "5443:5443/tcp"
+            #- "5443:5443/udp"
+            # DHCP Ports
+            #- "67:67/udp"
+            #- "68:68/tcp"
+            #- "68:68/udp"
+        environment:
+            TZ: "${ADGUARD_0_106_TIMEZONE}"
+        volumes:
+            - adguard-data:/opt/adguardhome/work
+            - ./data/adguardhome/conf:/opt/adguardhome/conf
+        labels:
+            # Enable traefik
+            - "traefik.enable=true"
+            # Add Admin Panel
+            - "traefik.http.routers.adguard-0-106-0.rule=Host(`${ADGUARD_0_106_URL_ADMIN}`)"
+            - "traefik.http.routers.adguard-0-106-0.entrypoints=websecure"
+            - "traefik.http.routers.adguard-0-106-0.tls=true"
+            - "traefik.http.routers.adguard-0-106-0.tls.certresolver=letsencryptresolver"
+            - "traefik.http.routers.adguard-0-106-0.service=lb-adguard-0-106-0"
+            - "traefik.http.services.lb-adguard-0-106-0.loadbalancer.server.port=${ADGUARD_0_106_PORT_ADMIN}"
+            - "traefik.http.routers.adguard-0-106-0.middlewares=adminauth"
+            # Add Dashboard Panel
+            - "traefik.http.routers.adguard-0-106-0-dashboard.rule=Host(`${ADGUARD_0_106_URL_DASHBOARD}`)"
+            - "traefik.http.routers.adguard-0-106-0-dashboard.entrypoints=websecure"
+            - "traefik.http.routers.adguard-0-106-0-dashboard.tls=true"
+            - "traefik.http.routers.adguard-0-106-0-dashboard.tls.certresolver=letsencryptresolver"
+            - "traefik.http.routers.adguard-0-106-0-dashboard.service=lb-adguard-0-106-0-dashboard"
+            - "traefik.http.services.lb-adguard-0-106-0-dashboard.loadbalancer.server.port=${ADGUARD_0_106_PORT_DASHBOARD}"
+            - "traefik.http.routers.adguard-0-106-0-dashboard.middlewares=adminauth"
+            # Add network
+            - "traefik.docker.network=traefik-public"
+            # Add adguard settings
+            - "com.centurylinklabs.watchtower.enable=true"
+        restart: always
+        networks:
+            - traefik-public
+            - adguard-internal
+
+# configure volumes
+volumes:
+    adguard-data:
+        name: "${ADGUARD_0_106_DATA_VOLUME_ID}"
+
+# configure networks
+networks:
+    traefik-public:
+        external: true
+        name: traefik-public
+    adguard-internal:
+        external: false
+        name: adguard-internal
+
