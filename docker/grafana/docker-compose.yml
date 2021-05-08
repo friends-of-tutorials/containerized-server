@@ -1,6 +1,9 @@
 version: '3'
 
 # configure services
+# $ mkdir grafana
+# $ mkdir prometheus
+# $ mkdir influxdb2
 services:
 
     # Prometheus v2.25.2 (monitoring and alerting)
@@ -69,6 +72,9 @@ services:
         user: "1000" # USER ID des Docker Users anpassen
         depends_on:
             - "${PROMETHEUS_2_25_2_HOSTNAME}"
+            - "${INFLUXDB_2_0_6_HOSTNAME}"
+        links:
+            - "${INFLUXDB_2_0_6_HOSTNAME}"
         labels:
             - "traefik.enable=true"
             - "traefik.http.routers.grafana-grafana-7-4-5.rule=Host(`${GRAFANA_7_4_5_URL}`)"
@@ -82,6 +88,22 @@ services:
             - "traefik.http.routers.grafana-secure.middlewares=secHeaders@file"
         networks:
             - traefik-public
+            - grafana-internal
+
+    # InfluxDB
+    # port: 8086
+    # https://hub.docker.com/_/influxdb
+    # $ docker exec -it grafana-influxdb-2.0.6 influxd print-config
+    # $ docker exec -it grafana-influxdb-2.0.6 influx setup
+    # $ docker exec -it grafana-influxdb-2.0.6 influx auth list --user admin --hide-headers | cut -f 3
+    grafana-influxdb-2-0-6:
+        image: "${INFLUXDB_2_0_6_IMAGE}"
+        container_name: "${INFLUXDB_2_0_6_CONTAINER_NAME}"
+        hostname: "${INFLUXDB_2_0_6_HOSTNAME}"
+        volumes:
+            - ./config/influxdb.yml:/etc/influxdb2/config.yml
+            - ./influxdb2:/var/lib/influxdb2
+        networks:
             - grafana-internal
 
 # configure network
