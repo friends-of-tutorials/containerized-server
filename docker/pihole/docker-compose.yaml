@@ -17,9 +17,9 @@ services:
         container_name: "${PIHOLE_5_7_CONTAINER_NAME}"
         hostname: "${PIHOLE_5_7_HOSTNAME}"
         ports:
-            - "53:53/tcp"
-            - "53:53/udp"
-            - "67:67/udp"
+            - "53:53/tcp" # DNS
+            - "53:53/udp" # DNS
+            - "67:67/udp" # DHCP
         environment:
             TZ: "${PIHOLE_5_7_TIMEZONE}"
             WEBPASSWORD: "${PIHOLE_5_7_WEBPASSWORD}"
