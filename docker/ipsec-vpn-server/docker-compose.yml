@@ -22,6 +22,10 @@ services:
             VPN_IPSEC_PSK: "${IPSEC_VPN_SERVER_PSK}"
             VPN_USER: "${IPSEC_VPN_SERVER_USER}"
             VPN_PASSWORD: "${IPSEC_VPN_SERVER_PASSWORD}"
+            VPN_ADDL_USERS: ${IPSEC_VPN_SERVER_ADD_USERS}
+            VPN_ADDL_PASSWORDS: ${IPSEC_VPN_SERVER_ADD_PASSWORDS}
+            VPN_DNS_NAME: "${IPSEC_VPN_SERVER_DNS_NAME}"
+            VPN_CLIENT_NAME: "${IPSEC_VPN_SERVER_CLIENT_NAME}"
         volumes:
             - ipsec-vpn-server-data:/etc/ipsec.d
         networks:
