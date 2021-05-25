@@ -1,0 +1,44 @@
+version: '3.4'
+
+# some services
+services:
+
+    # IPsec VPN Server
+    # ----------------
+    # $ sudo ufw allow 4500/udp
+    # $ sudo ufw allow 500/udp
+    ipsec-vpn-server:
+        image: "${IPSEC_VPN_SERVER_IMAGE}"
+        container_name: "${IPSEC_VPN_SERVER_CONTAINER_NAME}"
+        hostname: "${IPSEC_VPN_SERVER_HOSTNAME}"
+        ports:
+            - '500:500/udp'
+            - '4500:4500/udp'
+        privileged: true
+        labels:
+            - "traefik.enable=false"
+        restart: always
+        environment:
+            VPN_IPSEC_PSK: "${IPSEC_VPN_SERVER_PSK}"
+            VPN_USER: "${IPSEC_VPN_SERVER_USER}"
+            VPN_PASSWORD: "${IPSEC_VPN_SERVER_PASSWORD}"
+        volumes:
+            - ipsec-vpn-server-data:/etc/ipsec.d
+        networks:
+            - traefik-public
+            - ipsec-vpn-server-internal
+
+# some volumes
+volumes:
+    ipsec-vpn-server-data:
+        name: "${IPSEC_VPN_SERVER_DATA_VOLUME_ID}"
+
+# some networks
+networks:
+    traefik-public:
+        external: true
+        name: traefik-public
+    ipsec-vpn-server-internal:
+        external: false
+        name: ipsec-vpn-server-internal
+
