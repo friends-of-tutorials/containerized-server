@@ -1,0 +1,6 @@
+# Some renew configurations
+EMAIL=[CHANGE_ME]
+DOMAIN=[CHANGE_ME]
+TRAEFIK_CONTAINER_NAME=traefik-2.4.3
+TRAEFIK_DOCKER_COMPOSE_FILE=../traefik/docker-compose.yml
+TRAEFIK_ENV_FILE=../traefik/.env
